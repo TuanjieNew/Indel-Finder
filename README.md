@@ -12,6 +12,8 @@ User can install them by using pip:
   > pip install numpy  
   > pip install matplotlib  
 
+## Get Indel-Finder:  
+> git clone https://github.com/TuanjieNew/Indel-Finder.git  
 ## Usage: 
 >python bindel.py -r ./sample/crr5ref.fa -t ./sample/target1.fa -1 ./sample/1_S1_L001_R1_001.fastq -2 ./sample/1_S1_L001_R2_001.fastq -o ./    
  

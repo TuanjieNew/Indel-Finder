@@ -18,13 +18,13 @@ User can install them by using pip:
 ## Full options:
 ### *Common options*
  > -h      show this helop message and exit.
-### *File options*
-> -r     file name of reference file, required. The file is fasta format.
-> -t     file name of target sequence, required. The file is fasta format.
-> -1     file name of read1, required. The file is fastq or fastq.gz format.
-> -2     file name of read2, required. The file is fastq or fastq.gz format.
+### *File options*  
+> -r     file name of reference file, required. The file is fasta format.  
+> -t     file name of target sequence, required. The file is fasta format.  
+> -1     file name of read1, required. The file is fastq or fastq.gz format.  
+> -2     file name of read2, required. The file is fastq or fastq.gz format.  
 > -o     outpout directories. Default is ./  
 
 
 ## License  
-<code>Indel-Finder</code> is [MIT-licensed](https://github.com/TuanjieNew/Indel-Finder/blob/master/LICENSE).
+<code>Indel-Finder</code> is [MIT-licensed](https://github.com/TuanjieNew/Indel-Finder/blob/master/LICENSE).  

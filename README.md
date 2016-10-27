@@ -13,7 +13,7 @@ User can install them by using pip:
   > pip install matplotlib  
 
 ## Usage: 
-python bindel.py -r ./sample/crr5ref.fa -t ./sample/target1.fa -1 ./sample/1_S1_L001_R1_001.fastq -2 ./sample/1_S1_L001_R2_001.fastq -o ./    
+>python bindel.py -r ./sample/crr5ref.fa -t ./sample/target1.fa -1 ./sample/1_S1_L001_R1_001.fastq -2 ./sample/1_S1_L001_R2_001.fastq -o ./    
  
 ## Full options:  
 ### *Common options*  

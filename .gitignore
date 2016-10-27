@@ -87,3 +87,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# my configuration
+LICENSE
+*.fa.n*

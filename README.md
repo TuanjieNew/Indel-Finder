@@ -20,7 +20,7 @@ User can install them by using pip:
  
 ## Full options:  
 ### *Common options*  
-<code> -h      show this helop message and exit.</code>  
+<code> -h &emsp;&emsp;show this helop message and exit.</code>  
 ### *File options*  
 <code> -r &emsp;&emsp;file name of reference file, required. The file is fasta format.</code>    
 <code> -t &emsp;&emsp;file name of target sequence, required. The file is fasta format.</code>   

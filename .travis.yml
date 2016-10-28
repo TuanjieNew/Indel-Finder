@@ -1,0 +1,16 @@
+language: python
+python:
+    - 2.7.8
+    - 2.7
+    - pypy
+      #- 3.3
+      #- 3.4
+      #- 3.5
+      #- pypy3
+
+install:
+    - pip install -q numpy
+    - pip install -q matplotlib
+
+script:
+    - python bindel.py -r ./sample/crr5ref.fa -t ./sample/target1.fa -1 ./sample/1_S1_L001_R1_001.fastq -2 ./sample/1_S1_L001_R2_001.fastq -o ./

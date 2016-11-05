@@ -3,6 +3,10 @@
 import os, getopt,sys 
 import gzip
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 
 def usage():
     print("\nUsage: python -r ref.fa(5' to 3') -t target.fa(5' to 3' with PAM) -1 1_S1_L001_R1_001.fastq(or fastq.gz) -2 2_S1_L001_R2_001.fastq -o out_dir\n")
@@ -23,7 +27,10 @@ for op, value in opts:
     elif op == "-2":
         read2 = value
     elif op == "-o":
-        out_dir = value+'/'
+        if out_dir[-1] != '/':
+            out_dir = value+'/'
+        else:
+            out_dir = value
 if not os.path.exists(ref_file):
     print("The path [{}] do not exit!".format(ref_file))
     sys.exit()
@@ -36,14 +43,16 @@ if not os.path.exists(read1):
 if not os.path.exists(read2):
     print("The path [{}] do not exit!".format(read2))
     sys.exit()
+
 # judge fastq.gz or fastq
 def isFastq(input_file):
-    gzext = (".fq.gz", ".fastq.gz")
-    for ext in gzext:
-        if input_file.endswith(ext):
-            return gzip.open(input_file, 'rb')
-        else:
-            return open(input_file, 'r')
+    #gzext = ("fq.gz", "fastq.gz")
+    #for ext in gzext:
+    if input_file.endswith("q.gz"):
+        return gzip.open(input_file, 'rb')
+    else:
+        return open(input_file, 'r')
+
 
 # get indel from '*.clear.out' file        
 def getindel(clear_file, start_val, rlt_dir, fn):
@@ -59,12 +68,12 @@ def getindel(clear_file, start_val, rlt_dir, fn):
     INSER = open(rlt_dir+fn[:-3]+'.inser.out','w')
     #LOC_3 = open('3_loc.txt','w')
     #LOC_3.write('>'+fn+'\n')
-    LOC_DEL = open(rlt_dir+fn[:-3]+'.loc_del.txt','w')
-    LOC_INS = open(rlt_dir+fn[:-3]+'.loc_ins.txt','w')
-    LOC_IDL = open(rlt_dir+fn[:-3]+'.loc_idl.txt','w')
-    NUM_DEL = open(rlt_dir+fn[:-3]+'.num_del.txt','w')
-    NUM_INS = open(rlt_dir+fn[:-3]+'.num_ins.txt','w')
-    NUM_IDL = open(rlt_dir+fn[:-3]+'.num_idl.txt','w')
+    LOC_DEL = open(rlt_dir+fn[:-3]+'.pos_del.txt','w')
+    LOC_INS = open(rlt_dir+fn[:-3]+'.pos_ins.txt','w')
+    LOC_IDL = open(rlt_dir+fn[:-3]+'.pos_idl.txt','w')
+    NUM_DEL = open(rlt_dir+fn[:-3]+'.size_del.txt','w')
+    NUM_INS = open(rlt_dir+fn[:-3]+'.size_ins.txt','w')
+    NUM_IDL = open(rlt_dir+fn[:-3]+'.size_idl.txt','w')
 
     LOC_DEL.write(fn[:-3]+'\n')
     LOC_INS.write(fn[:-3]+'\n')
@@ -254,18 +263,51 @@ def getindel(clear_file, start_val, rlt_dir, fn):
     print('ratio: '+str(ratio))
     inser_str = '1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\t16\t17\t18\t19\t20\t21\t22\t23\t24\t25\n'
     delet_str = '1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12\t13\t14\t15\t16\t17\t18\t19\t20\t21\t22\t23\t24\t25\n'
+#initialize lists for plotting
+    num_ins_x = []
+    num_ins_y = []
+    num_del_x = []
+    num_del_y = []
+    num_idl_x = []
+    num_idl_y = []
+
+    loc_ins_x = []
+    loc_ins_y = []
+    loc_del_x = []
+    loc_del_y = []
+    loc_idl_x = []
+    loc_idl_y = []
+
     for i in range(len(inser_ls)-1):
         NUM_INS.write(str(i+1)+'\t'+str(inser_ls[i+1]*100/sum(inser_ls))+'\n')
+        num_ins_x.append(i+1)
+        num_ins_y.append(inser_ls[i+1]*100/sum(inser_ls))
     for i in range(len(delet_ls)-1):
         NUM_DEL.write(str(i+1)+'\t'+str(delet_ls[i+1]*100/sum(delet_ls))+'\n')
+        num_del_x.append(i+1)
+        num_del_y.append(delet_ls[i+1]*100/sum(delet_ls))
     for i in range(len(indel_ls)-1):
         NUM_IDL.write(str(i+1)+'\t'+str(indel_ls[i+1]*100/sum(indel_ls))+'\n')
+        num_idl_x.append((i+1))
+        num_idl_y.append(indel_ls[i+1]*100/sum(indel_ls))
     for i in range(len(loc_delet)-1):
         LOC_DEL.write(str(i+1-ra)+'\t'+str(loc_delet[i+1]*100/sum(loc_delet))+'\n')
+        loc_del_x.append(i+1-ra)
+        loc_del_y.append(loc_delet[i+1]*100/sum(loc_delet))
     for i in range(len(loc_inser)-1):
         LOC_INS.write(str(i+1-ra)+'\t'+str(loc_inser[i+1]*100/sum(loc_inser))+'\n')
+        loc_ins_x.append((i+1-ra))
+        loc_ins_y.append(loc_inser[i+1]*100/sum(loc_inser))
     for i in range(len(loc_indel)-1):
         LOC_IDL.write(str(i+1-ra)+'\t'+str(loc_indel[i+1]*100/sum(loc_indel))+'\n')
+        loc_idl_x.append((i+1-ra))
+        loc_idl_y.append(loc_indel[i+1]*100/sum(loc_indel))
+    getFigure(num_ins_x, num_ins_y, fn[:-3]+' Insertion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_ins.jpg',fn)
+    getFigure(num_del_x, num_del_y, fn[:-3]+' Deletion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_del.jpg', fn)
+    getFigure(num_idl_x, num_idl_y, fn[:-3]+' Indel Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_idl.jpg',fn)
+    getFigure(loc_ins_x, loc_ins_y, fn[:-3]+' Insertion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_ins.jpg',fn)
+    getFigure(loc_del_x, loc_del_y, fn[:-3]+' Deletion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_del.jpg',fn)
+    getFigure(loc_idl_x, loc_idl_y, fn[:-3]+' Indel Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_idl.jpg',fn)
 
     for i in range(len(inser_ls)-1):
         if i > 50:
@@ -297,10 +339,6 @@ def getindel(clear_file, start_val, rlt_dir, fn):
     SUMMARY.write(delet_str+'\n')
     #SUMMARY.write('---------------------------------------------------------------------------\n')
     SUMMARY.close()
-
-
-
-
 
 
 
@@ -394,6 +432,7 @@ def clear(fl,fn):
     #print(fn[:12]+':\nhit: '+str(hit))
     #print('nohit: '+str(nohit))
     return rlt_dir
+
 # generate fasta format file from fastq file and run blast
 def blastn(read):
     read_full_name = read.split('/')[-1]
@@ -409,6 +448,7 @@ def blastn(read):
     for line in fqFILE:
         lnum += 1
         line = line.strip('\n')
+        #print(line)
         if lnum % 4 == 1:
             ls = line.split(' ')
             faFILE.write('>'+ls[0][1:]+'\n')
@@ -422,9 +462,11 @@ def blastn(read):
                 '''
     fqFILE.close()
     faFILE.close()
-    os.system('nohup blastn -task dc-megablast -db '+ref_file+' -query '+temp_dir+r_name+'.fa -outfmt 0 -out '+temp_dir+r_name+'.out &')
+    print('blastn:')
+    os.system('nohup blastn -task dc-megablast -db '+ref_file+' -query '+temp_dir+r_name+'.fa -outfmt 0 -out '+temp_dir+r_name+'.out ')
 
     return r_name
+
 # get the position of the third base close to PAM
 def getpos(ref_file, target_file):
     lib = {}
@@ -477,17 +519,35 @@ def getpos(ref_file, target_file):
         print('The target is without PAM. Please add PAM to the target sequence: '+target_file)
         sys.exit()
 
+
+# draw figure
+def getFigure(x, y, title, x_label, y_label, name, fn):
+    fig_dir = out_dir + fn[:-3]+'_figures/'
+    if not os.path.exists(fig_dir):
+        os.makedirs(fig_dir)
+    fig, ax = plt.subplots(figsize = (10, 10))
+    ax.yaxis.grid(True, linestyle = '-', which = 'major', color = 'lightgrey', alpha = 0.5)
+    ax.xaxis.grid(True, linestyle = '-', which = 'major', color = 'lightgrey', alpha = 0.5)
+    ax.set_axisbelow('True')
+    ax.set_title(title)
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+#Bar Plot
+    plt.bar(x, y, facecolor = 'red', edgecolor = 'black')
+    plt.savefig(fig_dir+name, format = 'jpg')
+
+
 # make temp files directory
 temp_dir = ''
 # make figure files directory
 fig_dir = ''
 if os.path.exists(out_dir):
-    temp_dir = out_dir+'/cas_temp/'
+    temp_dir = out_dir+'cas_temp/'
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
 else:
     os.makedirs(out_dir)
-    temp_dir = out_dir+'/cas_temp/'
+    temp_dir = out_dir+'cas_temp/'
     os.makedirs(temp_dir)
 # make blast database
 os.system('makeblastdb -in '+ref_file+ ' -dbtype nucl -parse_seqids')

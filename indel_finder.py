@@ -476,7 +476,7 @@ def getpos(ref_file, target_file):
     TFILE = open(target_file, 'r')
 
     for line in TFILE:
-        line = line.strip('\n')
+        line = line.strip('\t\n ')
         if line[0] == '>':
             continue
         target = target + line.upper()
@@ -484,7 +484,7 @@ def getpos(ref_file, target_file):
     word_len = len(target)
 
     for line in RFILE:
-        line = line.strip('\n')
+        line = line.strip('\t\n ')
         if line[0] == '>':
             continue
         ref = ref+line.upper()

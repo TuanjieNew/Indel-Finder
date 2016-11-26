@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-#fn: bindel.py
+#fn: indel_finder.py
 import os, getopt,sys 
 import gzip
 import numpy as np
@@ -9,14 +9,17 @@ import matplotlib.pyplot as plt
 
 
 def usage():
-    print("\nUsage: python -r ref.fa(5' to 3') -t target.fa(5' to 3' with PAM) -1 1_S1_L001_R1_001.fastq(or fastq.gz) -2 2_S1_L001_R2_001.fastq -o out_dir\n")
+    print("\nUsage: python indel_finder.py -r ref.fa(5' to 3') -t target.fa(5' to 3' with PAM) -1 1_S1_L001_R1_001.fastq(or fastq.gz) -2 2_S1_L001_R2_001.fastq -o out_dir\n")
 
 out_dir = "./"
 opts, args = getopt.getopt(sys.argv[1:], "hr:t:1:2:o:")
+read1 = ''
+read2 = ''
 
 if len(opts) == 0:
     usage()
     sys.exit()
+
 for op, value in opts:
     if op == "-r":
         ref_file = value
@@ -27,7 +30,7 @@ for op, value in opts:
     elif op == "-2":
         read2 = value
     elif op == "-o":
-        if out_dir[-1] != '/':
+        if value[-1] != '/':
             out_dir = value+'/'
         else:
             out_dir = value
@@ -37,10 +40,10 @@ if not os.path.exists(ref_file):
 if not os.path.exists(target_file):
     print("The path [{}] do not exit!".format(target_file))
     sys.exit()
-if not os.path.exists(read1):
+if not os.path.exists(read1) and read1 != '':
     print("The path [{}] do not exit!".format(read1))
     sys.exit()
-if not os.path.exists(read2):
+if not os.path.exists(read2) and read2 != '':
     print("The path [{}] do not exit!".format(read2))
     sys.exit()
 
@@ -55,25 +58,25 @@ def isFastq(input_file):
 
 
 # get indel from '*.clear.out' file        
-def getindel(clear_file, start_val, rlt_dir, fn):
+def getindel(clear_file, start_val, rlt_dir, fn,t, fig_num):
     ra = 36 # half range 
     rang = [start_val - ra, start_val + ra, start_val] # star_val is the third base upstream of PAM
     FILE = open(clear_file, 'r')
     #OUTFILE = open(rlt_dir+fn[:-7]+'.bigap.out', 'w')
     #OUT2 = open(rlt_dir+fn[:-7]+'.loc2.out','w') # hit two location and gap < 50
-    SUMMARY = open(rlt_dir+fn[:-3]+'.info','w')
-    H1 = open(rlt_dir+fn[:-3]+'.noindel.out','w')
+    SUMMARY = open(rlt_dir+fn[:-3]+'.info',t)
+    H1 = open(rlt_dir+fn[:-3]+'.noindel.out',t)
     #H2 = open(rlt_dir+fn[:-3]+'.h2.out','w')
-    DELET = open(rlt_dir+fn[:-3]+'.delet.out','w')
-    INSER = open(rlt_dir+fn[:-3]+'.inser.out','w')
+    DELET = open(rlt_dir+fn[:-3]+'.delet.out',t)
+    INSER = open(rlt_dir+fn[:-3]+'.inser.out',t)
     #LOC_3 = open('3_loc.txt','w')
     #LOC_3.write('>'+fn+'\n')
-    LOC_DEL = open(rlt_dir+fn[:-3]+'.pos_del.txt','w')
-    LOC_INS = open(rlt_dir+fn[:-3]+'.pos_ins.txt','w')
-    LOC_IDL = open(rlt_dir+fn[:-3]+'.pos_idl.txt','w')
-    NUM_DEL = open(rlt_dir+fn[:-3]+'.size_del.txt','w')
-    NUM_INS = open(rlt_dir+fn[:-3]+'.size_ins.txt','w')
-    NUM_IDL = open(rlt_dir+fn[:-3]+'.size_idl.txt','w')
+    LOC_DEL = open(rlt_dir+fn[:-3]+'.pos_del.txt',t)
+    LOC_INS = open(rlt_dir+fn[:-3]+'.pos_ins.txt',t)
+    LOC_IDL = open(rlt_dir+fn[:-3]+'.pos_idl.txt',t)
+    NUM_DEL = open(rlt_dir+fn[:-3]+'.size_del.txt',t)
+    NUM_INS = open(rlt_dir+fn[:-3]+'.size_ins.txt',t)
+    NUM_IDL = open(rlt_dir+fn[:-3]+'.size_idl.txt',t)
 
     LOC_DEL.write(fn[:-3]+'\n')
     LOC_INS.write(fn[:-3]+'\n')
@@ -302,12 +305,12 @@ def getindel(clear_file, start_val, rlt_dir, fn):
         LOC_IDL.write(str(i+1-ra)+'\t'+str(loc_indel[i+1]*100/sum(loc_indel))+'\n')
         loc_idl_x.append((i+1-ra))
         loc_idl_y.append(loc_indel[i+1]*100/sum(loc_indel))
-    getFigure(num_ins_x, num_ins_y, fn[:-3]+' Insertion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_ins.jpg',fn)
-    getFigure(num_del_x, num_del_y, fn[:-3]+' Deletion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_del.jpg', fn)
-    getFigure(num_idl_x, num_idl_y, fn[:-3]+' Indel Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_idl.jpg',fn)
-    getFigure(loc_ins_x, loc_ins_y, fn[:-3]+' Insertion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_ins.jpg',fn)
-    getFigure(loc_del_x, loc_del_y, fn[:-3]+' Deletion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_del.jpg',fn)
-    getFigure(loc_idl_x, loc_idl_y, fn[:-3]+' Indel Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_idl.jpg',fn)
+    getFigure(num_ins_x, num_ins_y, fn[:-3]+' Insertion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_ins'+fig_num+'.jpg',fn)
+    getFigure(num_del_x, num_del_y, fn[:-3]+' Deletion Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_del'+fig_num+'.jpg', fn)
+    getFigure(num_idl_x, num_idl_y, fn[:-3]+' Indel Size', 'Size', 'Ratio(%)', fn[:-3]+'_size_idl'+fig_num+'.jpg',fn)
+    getFigure(loc_ins_x, loc_ins_y, fn[:-3]+' Insertion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_ins'+fig_num+'.jpg',fn)
+    getFigure(loc_del_x, loc_del_y, fn[:-3]+' Deletion Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_del'+fig_num+'.jpg',fn)
+    getFigure(loc_idl_x, loc_idl_y, fn[:-3]+' Indel Position', 'Position', 'Ratio(%)', fn[:-3]+'_pos_idl'+fig_num+'.jpg',fn)
 
     for i in range(len(inser_ls)-1):
         if i > 50:
@@ -353,7 +356,7 @@ def clear(fl,fn):
         OUTFILE = open(fl[:-7]+'.clear.out','w')
 # output blastn result to a format that is easy to process 
     if int(fn[-1]) == 2:
-        OUTFILE = open(fl[:-7]+'.clear.out','a') 
+        OUTFILE = open(fl[:-7]+'.clear.out','w') 
 # output basic information of the blastn result
     INFOFILE = open(rlt_dir+fn[:-3]+'.info','w')
     INFOFILE.write(fn[:-3]+'\n')
@@ -512,9 +515,12 @@ def getpos(ref_file, target_file):
         print('There 2 target regions in reference!!!')
         sys.exit()
     if target[0:2] == 'GG' or target[0:2] == 'CC':
-        return pos + 5
-    if target[-2:] == 'GG' or target[-2:] == 'CC':
-        return pos + word_len - 5
+        if target[-2:] == 'GG' or target[-2:] == 'CC':
+            return [pos+5, pos + word_len - 5]
+        else:
+            return [pos + 5]
+    elif target[-2:] == 'GG' or target[0:2] == 'CC':
+        return [pos + word_len - 5]
     else:
         print('The target is without PAM. Please add PAM to the target sequence: '+target_file)
         sys.exit()
@@ -556,13 +562,22 @@ rang = getpos(ref_file, target_file)
 print('rang: '+str(rang))
 print('temp: '+temp_dir)
 # invoke blastn function for read1
-r_name = blastn(read1)
-print('r_name: '+r_name)
-result_dir = clear(temp_dir+r_name+'.out', r_name)
-print('r_dir: '+result_dir)
+if read1 != '':
+    r_name = blastn(read1)
+    print('r_name: '+r_name)
+    result_dir = clear(temp_dir+r_name+'.out', r_name)
+    print('r_dir: '+result_dir)
 #getindel(temp_dir+r_name[:-3]+'.clear.out', rang, result_dir, r_name)
 # invoke blastn function for read2
-r_name = blastn(read2)
-result_dir = clear(temp_dir+r_name+'.out', r_name)
-getindel(temp_dir+r_name[:-3]+'.clear.out', rang, result_dir, r_name)
+if read2 != '':
+    r_name = blastn(read2)
+    result_dir = clear(temp_dir+r_name+'.out', r_name)
+ii = 0
+for i in rang:
+    if ii == 0:
+        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,'w', '_1')
+    elif ii == 1:
+        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name, 'a','_2')
+    ii += 1
+
 #r_ls = [257, 442, 508, 782, 543, 603, 685]

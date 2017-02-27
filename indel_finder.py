@@ -101,8 +101,10 @@ def getindel(clear_file, start_val, rlt_dir, fn,t, fig_num):
     r = 0
     lnum = 0
     for line in FILE:
-        line = line.strip('\n')
+        line = line.strip('\r\t\n ')
         ls = line.split('\t')
+        if len(ls[1]) < 100:
+            continue
         loc_query = ls[3].split('|')
         loc_sbjct = ls[4].split('|')
         if len(loc_sbjct) == 2:
@@ -255,10 +257,19 @@ def getindel(clear_file, start_val, rlt_dir, fn,t, fig_num):
     print('for l_2:\nr2_+/-: '+str(l_2_r))
     print('bigap: '+str(bigap))
     
+    indel = 0
+    delet_sum = 0
+    inser_sum = 0
+    ratio = 0
+    delet_sum = sum(delet_ls)
+    inser_sum = sum(inser_ls)
     indel = sum(delet_ls) + sum(inser_ls)
     indel_ls = delet_ls + inser_ls
     loc_indel = loc_delet + loc_inser
-    ratio = indel*1.0/rsum
+    if rsum == 0:
+        ratio = 0
+    else:
+        ratio = indel*1.0/rsum
     print('delet: '+str(sum(delet_ls)))
     print('inser: '+str(sum(inser_ls)))
     print('covered reads: '+str(rsum))
@@ -342,6 +353,7 @@ def getindel(clear_file, start_val, rlt_dir, fn,t, fig_num):
     SUMMARY.write(delet_str+'\n')
     #SUMMARY.write('---------------------------------------------------------------------------\n')
     SUMMARY.close()
+    return [rsum, rsum-indel, indel, inser_sum, delet_sum, ratio*100] 
 
 
 
@@ -469,25 +481,35 @@ def blastn(read):
     os.system('nohup blastn -task dc-megablast -db '+ref_file+' -query '+temp_dir+r_name+'.fa -outfmt 0 -out '+temp_dir+r_name+'.out ')
 
     return r_name
-
+def getreverse(seq):
+    seq = seq[::-1]
+    rseq = ''
+    for i in seq:
+        if i == 'A':
+            rseq += 'T'
+        elif i == 'T':
+            rseq += 'A'
+        elif i == 'G':
+            rseq += 'C'
+        elif i == 'C':
+            rseq += 'G'
+        elif i == 'N':
+            print("'N' is in guide sequence!!!")
+            sys.eixt()
+    return rseq
 # get the position of the third base close to PAM
-def getpos(ref_file, target_file):
+def getpos(ref_file, target):
     lib = {}
     ref = ''
-    target = ''
     RFILE = open(ref_file, 'r')
     TFILE = open(target_file, 'r')
 
-    for line in TFILE:
-        line = line.strip('\t\n ')
-        if line[0] == '>':
-            continue
-        target = target + line.upper()
+    target = target.upper()
     
     word_len = len(target)
 
     for line in RFILE:
-        line = line.strip('\t\n ')
+        line = line.strip('\r\t\n ')
         if line[0] == '>':
             continue
         ref = ref+line.upper()
@@ -505,21 +527,26 @@ def getpos(ref_file, target_file):
         i -= 1
 # judge whether target in reference. If not, throw error and break!
     if target not in lib.keys():
-        print('The target region  not in reference!!!')
-        sys.exit()
+        target = getreverse(target)
+        if target not in lib.keys():
+            print('hi: '+getreverse(target))
+            print('The target region  not in reference!!!')
+            sys.exit()
 # target position in reference
     pos = int(lib[target].split(';')[0])
     print('pos: '+str(pos))
 # if there two target regions, throw error and break!
+    '''
     if len(lib[target].split(';')) >= 2:
         print('There 2 target regions in reference!!!')
         sys.exit()
-    if target[0:2] == 'GG' or target[0:2] == 'CC':
-        if target[-2:] == 'GG' or target[-2:] == 'CC':
+    '''
+    if  target[0:2] == 'CC' or target[0:2] == 'CT':
+        if target[-2:] == 'GG' or target[-2:] == 'AG':
             return [pos+5, pos + word_len - 5]
         else:
             return [pos + 5]
-    elif target[-2:] == 'GG' or target[0:2] == 'CC':
+    elif target[-2:] == 'GG' or target[-2:] == 'AG':
         return [pos + word_len - 5]
     else:
         print('The target is without PAM. Please add PAM to the target sequence: '+target_file)
@@ -558,9 +585,7 @@ else:
 # make blast database
 os.system('makeblastdb -in '+ref_file+ ' -dbtype nucl -parse_seqids')
 # get the position of the third base close to PAM
-rang = getpos(ref_file, target_file)
-print('rang: '+str(rang))
-print('temp: '+temp_dir)
+
 # invoke blastn function for read1
 if read1 != '':
     r_name = blastn(read1)
@@ -568,16 +593,45 @@ if read1 != '':
     result_dir = clear(temp_dir+r_name+'.out', r_name)
     print('r_dir: '+result_dir)
 #getindel(temp_dir+r_name[:-3]+'.clear.out', rang, result_dir, r_name)
-# invoke blastn function for read2
+# invoke blastn function for read2.
 if read2 != '':
     r_name = blastn(read2)
     result_dir = clear(temp_dir+r_name+'.out', r_name)
-ii = 0
-for i in rang:
-    if ii == 0:
-        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,'w', '_1')
-    elif ii == 1:
-        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name, 'a','_2')
-    ii += 1
+# Target file containing multiple targets.
+TFILE = open(target_file,'r')
+lnumber = 0
+FILE = open(result_dir+r_name[:-4]+'_sum.info','a')
+FILE.write('#No.\tCovered reads\tUnmdf\tIndel\tInser\tDelet\tRatio\n') 
+for line in TFILE:
+    lnumber += 1
+    t_name = ''
+    info_ls = []
+    info_1 = [0,0,0,0,0,0]
+    info_2 = [0,0,0,0,0,0]
+    line = line.strip('\t\r\n ')
+    if line[0] == '>':
+        t_name = str(line[1:])
+        continue
+    target = line
+
+    rang = getpos(ref_file, target)
+    print('rang: '+str(rang))
+    print('temp: '+temp_dir)
+
+    ii = 0
+    for i in rang:
+        if ii == 0:
+            info_1 = getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name[:-3]+t_name,'w', '_1')
+        elif ii == 1:
+            info_2 = getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name[:-3]+t_name, 'a','_2')
+            # choose the larger one of editing ratio
+        ii += 1
+    if int(info_1[4]) >= int(info_2[4]): 
+        info_ls = info_1
+    else:
+        info_ls = info_2
+    print(info_ls)
+    FILE.write(str(lnumber/2)+'\t'+str(info_ls[0])+'\t'+str(info_ls[1])+'\t'+str(info_ls[2])+'\t'+str(info_ls[3])+'\t'+str(info_ls[4])+'\t'+str(info_ls[5])+'\n')
+FILE.close()
 
 #r_ls = [257, 442, 508, 782, 543, 603, 685]

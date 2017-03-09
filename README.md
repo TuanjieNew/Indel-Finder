@@ -31,8 +31,8 @@ User can install them by using pip:
 ## Mosaicism Index  
 
 Mosacism index is from [Gini–Simpson index](https://en.wikipedia.org/wiki/Diversity_index) used to evaluate the degree of mosaic.  
-The closer to 1 the Mosacism index is, the higer the degree of mosaic is.
-It can be expressed as a transformation of true diversity of order 2:
+The closer to 1 the Mosacism index is, the higer the degree of mosaic is.  
+It can be    expressed as a transformation of true diversity of order 2:  
 ![Gini-Simpson index](https://wikimedia.org/api/rest_v1/media/math/render/svg/cfe79cc21d7d7f882b22f2ef6660ba2461640246)
 
 

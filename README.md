@@ -28,6 +28,13 @@ User can install them by using pip:
 <code> -2 &emsp;&emsp;file name of read2, required. The file is fastq or fastq.gz format.</code>    
 <code> -o &emsp;&emsp;outpout directories. Default is ./ . The blast results are in cas_temp, indel data in ./*_result, figures in ./*_figures.</code>  
 
+## Mosaicism Index  
+
+Mosacism index is from [Gini–Simpson index](https://en.wikipedia.org/wiki/Diversity_index) used to evaluate the degree of mosaic.  
+The closer to 1 the Mosacism index is, the higer the degree of mosaic is.
+It can be expressed as a transformation of true diversity of order 2:
+![Gini-Simpson index](https://wikimedia.org/api/rest_v1/media/math/render/svg/cfe79cc21d7d7f882b22f2ef6660ba2461640246)
+
 
 ## License  
 <code>Indel-Finder</code> is [MIT-licensed](https://github.com/TuanjieNew/Indel-Finder/blob/master/LICENSE).  

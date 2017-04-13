@@ -3,6 +3,7 @@ A program used to find indels from next-genearation sequencing data on target ge
 
 ## Environment configuration:  
 <code>Indel-Finder</code> uses [Nucleotide-Nucleotide BLAST 2.4.0+](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download) to find reads position and do local alignment and then processes the blast result to get indel and calculate the on-target efficiency.  
+<code>Python2.7</code>  
 
 
 ## Dependency:  

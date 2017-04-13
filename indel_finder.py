@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #fn: indel_finder.py
 import os, getopt,sys 
+import re
 import gzip
 import numpy as np
 import matplotlib
@@ -136,6 +137,9 @@ def getindel(clear_file, start_val, rlt_dir, fn, ref_file,t, fig_num):
         ls = line.split('\t')
         loc_query = ls[3].split('|')
         loc_sbjct = ls[4].split('|')
+        #print(ls)
+        if len(loc_sbjct) == 1 and int(ls[-1]) < 80:
+            continue
         if len(loc_sbjct) == 2:
             l_2 += 1
             loc_1 = loc_sbjct[0].split(';')#[0].split(':')[0]
@@ -416,8 +420,10 @@ def getindel(clear_file, start_val, rlt_dir, fn, ref_file,t, fig_num):
 ## Mismatch: Mismatch / Covered reads.
 ## Mosaicism Index: 1 - (wild type ratio)^2 - (Inser. Ratio)^2 - (Delet. Ratio)^2 - (Mismatch Ratio)^2.
 
-    SUMMARY.write('Hit Reads\tCovered Reads\tIndel\tIndel Ratio\tInsertion\tInser. Ratio\tDeletion\tDelet. Ratio\tMismatch\tMismatch Ratio\tMosaicism Index\n')
-    SUMMARY.write(str(l_1)+'\t'+str(rsum)+'\t'+ str(indel) + '\t'+ str('%.4f'%(ratio))+'\t'+ str(sum(inser_ls)) + '\t' + str('%.4f'%(inser_ratio)) + '\t' + str(sum(delet_ls)) + '\t' + str('%.4f'%(delet_ratio)) + '\t' + str(mis) + '\t' + str('%.4f'%(mis_ratio)) + '\t' + str('%.4f'%(1-(wild_ratio**2 + inser_ratio**2 + delet_ratio**2 + mis_ratio**2))) + '\n')
+    #SUMMARY.write('Hit Reads\tCovered Reads\tIndel\tIndel Ratio\tInsertion\tInser. Ratio\tDeletion\tDelet. Ratio\tMismatch\tMismatch Ratio\tMosaicism Index\n')
+    #SUMMARY.write(str(l_1)+'\t'+str(rsum)+'\t'+ str(indel) + '\t'+ str('%.4f'%(ratio))+'\t'+ str(sum(inser_ls)) + '\t' + str('%.4f'%(inser_ratio)) + '\t' + str(sum(delet_ls)) + '\t' + str('%.4f'%(delet_ratio)) + '\t' + str(mis) + '\t' + str('%.4f'%(mis_ratio)) + '\t' + str('%.4f'%(1-(wild_ratio**2 + inser_ratio**2 + delet_ratio**2 + mis_ratio**2))) + '\n')
+    SUMMARY.write('Hit Reads\tCovered Reads\tIndel\tIndel Ratio\tMosaicism Index\n')
+    SUMMARY.write(str(l_1)+'\t'+str(rsum)+'\t'+ str(indel) + '\t'+ str('%.4f'%(ratio))+ '\t' + str('%.4f'%(1-(wild_ratio**2 + inser_ratio**2 + delet_ratio**2 + mis_ratio**2))) + '\n')
     '''
 # old style
     SUMMARY.write('hit_1: '+str(l_1)+'\n')
@@ -442,16 +448,18 @@ def getindel(clear_file, start_val, rlt_dir, fn, ref_file,t, fig_num):
     SUMMARY.write(delet_str+'\n')
     #SUMMARY.write('---------------------------------------------------------------------------\n')
     SUMMARY.close()
+    return [rsum, indel] 
 
 
 
-# from blastn output result to another format that is easy to be processed
+# transform blastn output result to another format that is easy to be processed
 def clear(fl,fn):
     rlt_dir = out_dir + fn[:-3]+'_result/'
     if not os.path.exists(rlt_dir):
         os.makedirs(rlt_dir)
     FILE = open(fl,'r')
     #print(fn[-5])
+    
     if int(fn[-1]) == 1:
         OUTFILE = open(fl[:-7]+'.clear.out','w')
 # output blastn result to a format that is easy to process 
@@ -467,6 +475,7 @@ def clear(fl,fn):
     loc_q = ''
     loc_s = ''
     rn = ''
+    idnty = '' # Identities in blast out 
     nohit = 0
     hit = 0
     for line in FILE:
@@ -482,6 +491,10 @@ def clear(fl,fn):
         if line[:6] == 'Query=':
             #print(line)
             newrn = line[7:] 
+        if line[:14] == ' Identities = ':
+            line_ls = line.split(' ')
+            idnty = idnty + line_ls[4][1:-3]
+
         if line[:8] == ' Strand=':
             query = query + ';'
             sbjct = sbjct + ';'
@@ -493,7 +506,8 @@ def clear(fl,fn):
             if hit == 1:
                 rn = newrn
                 continue
-            OUTFILE.write(rn+'\t'+query[1:]+'\t'+sbjct[1:]+'\t'+loc_q[1:-1]+'\t'+loc_s[1:-1]+'\n')
+            OUTFILE.write(rn+'\t'+query[1:]+'\t'+sbjct[1:]+'\t'+loc_q[1:-1]+'\t'+loc_s[1:-1]+'\t'+idnty+'\n')
+            idnty = '' # Identities in blast out 
             rn = newrn
             query = ''
             sbjct = ''
@@ -526,7 +540,7 @@ def clear(fl,fn):
                 sbjct = sbjct+ls[4]
                 loc_s = loc_s+ls[2]+':'+ls[6]+';'
 
-    OUTFILE.write(newrn+'\t'+query[1:-1]+'\t'+sbjct[1:-1]+'\t'+loc_q[1:-1]+'\t'+loc_s[1:-1]+'\n')
+    OUTFILE.write(newrn+'\t'+query[1:-1]+'\t'+sbjct[1:-1]+'\t'+loc_q[1:-1]+'\t'+loc_s[1:-1]+'\t'+idnty+'\n')
     INFOFILE.write(fn[:-4]+':\nhit: '+str(hit)+'\n')
     INFOFILE.write(fn[:-4]+':\nnohit: '+str(nohit)+'\n')
     OUTFILE.close()
@@ -567,7 +581,7 @@ def blastn(read):
     fqFILE.close()
     faFILE.close()
     print('blastn:')
-    os.system(' blastn -task dc-megablast -db '+ref_file+' -query '+temp_dir+r_name+'.fa -outfmt 0 -out '+temp_dir+r_name+'.out ')
+    os.system(' blastn -task dc-megablast -db '+temp_dir+ref_file+' -query '+temp_dir+r_name+'.fa -outfmt 0 -out '+temp_dir+r_name+'.out ')
 
     return r_name
 def getreverse(seq):
@@ -667,10 +681,12 @@ def getFigure(x, y, title, x_label, y_label, name, fn):
 ## ref_file: reference
 ## sg: sgRNA sequence with PAM
 ## p_range: pattern range,default value = 6, the nuclotide number before and after the editing pattern. The bigger the value is, the more patters there are, due to the existence of mismatch in reads;
-def getpattern(dir_nm, pos, ref_file, sg_file, p_range = 6): 
+def getpattern(dir_nm, pos, ref_file, sg_file, reads_sum, p_range = 6): 
 
     if os.path.exists(dir_nm+'.pattern.txt'):
         os.system('rm '+dir_nm+'.pattern.txt')
+    ratio = 100.0*int(reads_sum[1])/int(reads_sum[0])
+    w_ratio = 100 - ratio
     tp = 1
     for tp in [1, 2]:
 
@@ -707,22 +723,23 @@ def getpattern(dir_nm, pos, ref_file, sg_file, p_range = 6):
         OUT.write('#'+fn+'\n')
         #OUT.write('#pattern: editing pattern\n#INSER: insertion pattern\n#NUMBER:The number of reads that have such pattern\n')
         if tp == 2:
-            OUT.write('#No.\tPattern\t\t\t Insertion\tReads Number\tRatio\n')
+            OUT.write('#No.\tPattern\t\t\t Insertion\tReads Number\tRatio in All\n')
         elif tp == 1:
-            OUT.write('#No.\tPattern\t\t\t Deletion\tReads Number\tRatio\n')
+            OUT.write('#No.\tPattern\t\t\t Deletion\tReads Number\tRatio in All\n')
 
         lf = False 
         if sg[0:2] == 'CC' or sg[0:2] == 'CT' and sg[-2:] != 'GG':
-            lf =  True
-            OUT.write(  'ref\t'+ref[pos - 10 : pos + 20] + '\n')
-        else:
-            OUT.write( 'ref\t'+ ref[pos - 20 : pos + 10] + '\n')
+            lf =  True # sg-RNA 3'-5'
+            OUT.write( 'ref\t'+ref[pos - 10 : pos + 20] + '\tN/A\t' + str(int(reads_sum[0] - reads_sum[1]))+ '\t'+str('%.3f%%' % w_ratio)+'\n')
+        else: # sg-RNA 5'-3'
+            OUT.write( 'ref\t'+ ref[pos - 20 : pos + 10] + '\tN/A\t'+str(int(reads_sum[0] - reads_sum[1])) + '\t' + str('%.3f%%' % w_ratio)+'\n')
 
         
         dic = {}
         lnum = 0
         for line in FILE:
             line = line.strip('\n\t\t ')
+            line = line.upper()
             ls = line.split('\t')
 
             loc_sbjct = ls[4].split('|')
@@ -761,24 +778,69 @@ def getpattern(dir_nm, pos, ref_file, sg_file, p_range = 6):
             print('absPos: '+str(absPos))
             '''
             if lf == True:
-                pattern = ref[ pos - 10 : absPos -  p_range - 1] + pattern + ref[absPos + delet + p_range - tp : pos + 20] + '\t' + edit_tp+str(delet)+ls[tp2][count - delet:count]
+                if edit_tp == '-':
+                    pattern = ref[ pos - 10 : absPos -  p_range - 1] + pattern + ref[absPos + delet + p_range - 1 : pos + 20] + '\t' + edit_tp+str(delet)+ls[tp2][count - delet:count]
+                elif edit_tp == '+':
+                    pattern = ref[ pos - 10 : absPos -  p_range - 1] + pattern + ref[absPos + p_range - 1 : pos + 20] + '\t' + edit_tp+str(delet)+ls[tp2][count - delet:count]
             else:
-                pattern = ref[pos - 20 : absPos - p_range - 1] + pattern + ref[absPos + delet + p_range - tp: pos + 10] + '\t' + edit_tp + str(delet) + ls[tp2][count - delet:count]
+                if edit_tp == '-':
+                    pattern = ref[pos - 20 : absPos - p_range - 1] + pattern + ref[absPos + delet + p_range - 1: pos + 10] + '\t' + edit_tp + str(delet) + ls[tp2][count - delet:count]
+                elif edit_tp == '+':
+                    pattern = ref[pos - 20 : absPos - p_range - 1] + pattern + ref[absPos + p_range - 1: pos + 10] + '\t' + edit_tp + str(delet) + ls[tp2][count - delet:count]
 
-            if pattern in dic.keys():
-                dic[pattern] += 1
+            pa = re.compile(r'([A,T,C,G]+)((\-+|\++)([A,T,C,G]*?)(\-*|\+*))([A,T,C,G]+)\t(\-|\+)(\w+)')
+            #print(pattern)
+            if not pa.match(pattern):
+                continue
+            repa = pa.match(pattern)
+            repattern = repa.group(1)+repa.group(6)
+            #print(repattern)
+            if repattern in dic.keys():
+                dic[repattern][0] += 1
             else:
-                dic[pattern] = 1
+                dic[repattern] = [1, pattern]
         dic_ls = sorted(dic.iteritems(), key = lambda asd:asd[1], reverse = True)
         c = 0
         for i in dic_ls:
             c += 1
-            OUT.write(' '+str(c)+'.\t'+i[0] + '\t' + str(i[1]) + '\t' + str('%.4f'%(int(i[1])*1.0/lnum))+'\n')
-        OUT.write('\n\n')
+            OUT.write(' '+str(c)+'.\t'+i[1][1] + '\t' + str(i[1][0]) + '\t' + str('%.3f%%'%(int(i[1][0])*100.0/reads_sum[0]))+'\n')
+        #OUT.write('\n\n')
         TFILE.close()
         RFILE.close()
         FILE.close()
+        OUT.close()
+    ratio_ls = []
+    seq_num = 1
+    ref_c = 0
+    ccc = 0
+    head_nm = dir_nm.split('/')
+    head_nm = head_nm[-1].split('_')
+    with open(dir_nm+'.sum.txt', 'w') as FILE:
+        FILE.write('\t\tIndel Type\tReads Number\tRatio in All Reads\n')
+        with open(dir_nm+'.pattern.txt', 'r') as PFILE:
+            for line in PFILE:
+                #print(line)
+                line = line.strip('\n\r\t ')
+                if  line[0] == '#':
+                    continue
+                ls = line.split('\t')
+                if line[:3] == 'ref' and ref_c == 0:
+                    ratio_ls.append(float(ls[4][:-1])/100)
+                    ref_seq = ls[1]
+                    FILE.write('Seq1(ref)\t%s\t%s\t%s\t%s\n' % (ls[1][4:-3],ls[2], ls[3], ls[4]))
+                    ref_c += 1
+                elif line[:3] != 'ref':
+                    if float(ls[4][:-1]) > 1:
+                        seq_num += 1
+                        ratio_ls.append(float(ls[4][:-1])/100)
+                        FILE.write('Seq%d\t%s\t%s\t%s\t%s\n' % (seq_num, ls[1][4:-3], ls[2], ls[3], ls[4]))
+        ss = 0
+        for i in ratio_ls:
+            #print(i)
+            ss = ss + i**2
+            #print(ss)
 
+        FILE.write(head_nm[0]+'\tAll Reads: %d\tEdited Reads: %d\tEdited Reads Ratio: %.3f%%\tMosaicism Index: %.3f\n' % (int(reads_sum[0]), int(reads_sum[1]), ratio, (1-ss)))
 
     '''
     fn = 'M9_S18_L001.delet.out'
@@ -786,8 +848,6 @@ def getpattern(dir_nm, pos, ref_file, sg_file, p_range = 6):
     sg_file = '../../g4_g.txt'
     getpattern(fn, 1, 108, ref_file, sg_file)
     '''
-
-
 # make temp files directory
 temp_dir = ''
 # make figure files directory
@@ -801,7 +861,7 @@ else:
     temp_dir = out_dir+'cas_temp/'
     os.makedirs(temp_dir)
 # make blast database
-os.system('makeblastdb -in '+ref_file+ ' -dbtype nucl -parse_seqids')
+os.system('makeblastdb -in '+ref_file+ ' -dbtype nucl -parse_seqids -out '+temp_dir+ref_file)
 # get the position of the third base close to PAM
 rang = getpos(ref_file, target_file)
 print('rang: '+str(rang))
@@ -820,13 +880,11 @@ if read2 != '':
 ii = 0
 for i in rang:
     if ii == 0:
-        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,ref_file,'w', '_1')
-        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file)
-        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file)
+        reads_sum = getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,ref_file,'w', '_1')
+        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file, reads_sum)
     elif ii == 1:
-        getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,ref_file, 'a','_2')
-        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file)
-        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file)
+        reads_sum = getindel(temp_dir+r_name[:-3]+'.clear.out', i, result_dir, r_name,ref_file, 'a','_2')
+        getpattern(result_dir+r_name[:-3] ,  int(i), ref_file, target_file, reads_sum)
     ii += 1
 
 #r_ls = [257, 442, 508, 782, 543, 603, 685]

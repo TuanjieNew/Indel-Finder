@@ -259,7 +259,6 @@ def getindel(clear_file, start_val, rlt_dir, fn, ref_file,t, fig_num):
                     #for delet
                     for i in query:
                         count += 1
-                        print(line)
                         if i == '-' and query[count] != '-':
                             delet += 1
                             ref_loc_tr = ls[4].split(':')#reverse sbjct loc infomation

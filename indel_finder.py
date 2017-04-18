@@ -259,6 +259,7 @@ def getindel(clear_file, start_val, rlt_dir, fn, ref_file,t, fig_num):
                     #for delet
                     for i in query:
                         count += 1
+                        print(line)
                         if i == '-' and query[count] != '-':
                             delet += 1
                             ref_loc_tr = ls[4].split(':')#reverse sbjct loc infomation
@@ -516,29 +517,14 @@ def clear(fl,fn):
             
             #OUTFILE.write(line)
         elif line[:6] == 'Query ':
-            ls = line.split(' ')
+            ls = re.split('\s+', line)
             #print(ls[6])
-            if len(ls) == 8:
-                query = query+ls[5]
-                loc_q = loc_q+ls[2]+':'+ls[7]+';'
-            if len(ls) == 7:
-                query = query+ls[4]
-                loc_q = loc_q+ls[2]+':'+ls[6]+';'
-            if len(ls) == 9:
-                query = query+ls[6]
-                loc_q = loc_q+ls[2]+':'+ls[8]+';'
-
+            query = query+ls[2]
+            loc_q = loc_q+ls[1]+':'+ls[3]+';'
         elif line[:6] == 'Sbjct ':
-            ls = line.split(' ')
-            if len(ls) == 9:
-                sbjct = sbjct+ls[6]
-                loc_s = loc_s+ls[2]+':'+ls[8]+';'
-            if len(ls) == 8:
-                sbjct = sbjct+ls[5]
-                loc_s = loc_s+ls[2]+':'+ls[7]+';'
-            if len(ls) == 7:
-                sbjct = sbjct+ls[4]
-                loc_s = loc_s+ls[2]+':'+ls[6]+';'
+            ls = re.split('\s+', line)
+            sbjct = sbjct+ls[2]
+            loc_s = loc_s+ls[1]+':'+ls[3]+';'
 
     OUTFILE.write(newrn+'\t'+query[1:-1]+'\t'+sbjct[1:-1]+'\t'+loc_q[1:-1]+'\t'+loc_s[1:-1]+'\t'+idnty+'\n')
     INFOFILE.write(fn[:-4]+':\nhit: '+str(hit)+'\n')
